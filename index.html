@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Detector</title>
+</head>
+<body>
+    <h1>Upload an Image for Barcode Detection & Read</h1>
+    <form id="uploadForm">
+        <label for="fileInput">Select an image:</label>
+        <input type="file" id="fileInput" name="file" accept="image/*" required>
+        <br><br>
+
+        <label for="thresholdInput">Confidence Threshold (0-1):</label>
+        <input type="range" id="thresholdInput" name="threshold" min="0" max="1" step="0.01" value="0.5" oninput="thresholdValue.innerText = this.value">
+        <span id="thresholdValue">0.5</span>
+        <br><br>
+
+        <label for="downloadZip">Download ZIP file:</label>
+        <input type="checkbox" id="downloadZip" name="download_zip">
+        <br><br>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <h2>Detected Barcodes:</h2>
+    <ul id="barcodeList"></ul>
+    <img id="labeledImage" src="" alt="" style="display:none;"/>
+
+    <script>
+        const form = document.getElementById("uploadForm");
+        const barcodeList = document.getElementById("barcodeList");
+        const labeledImage = document.getElementById("labeledImage");
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const fileInput = document.getElementById("fileInput").files[0];
+            const thresholdInput = document.getElementById("thresholdInput").value;
+            const downloadZip = document.getElementById("downloadZip").checked;
+            const formData = new FormData();
+            formData.append("file", fileInput);
+            formData.append("threshold", thresholdInput);
+            formData.append("download_zip", downloadZip);
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/predict/", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    if (downloadZip) {
+                        // Handle ZIP download
+                        const zipBlob = await response.blob();
+                        const url = window.URL.createObjectURL(zipBlob);
+                        const zipFileName = fileInput.name.split(".")[0] + "_barcode_prediction.zip";
+
+                        // Create a link to download the ZIP file
+                        const zipLink = document.createElement("a");
+                        zipLink.href = url;
+                        zipLink.download = zipFileName;
+                        document.body.appendChild(zipLink);
+                        zipLink.click();
+                        zipLink.remove();
+                    } else {
+                        // Handle JSON response (barcode data)
+                        const data = await response.json();
+
+                        // Display detected barcodes
+                        barcodeList.innerHTML = "";
+                        data.forEach((item) => {
+                            const listItem = document.createElement("li");
+                            listItem.textContent = `Crop #${item.crop_number}: ${item.barcode_detected}`;
+                            barcodeList.appendChild(listItem);
+                        });
+                    }
+                } else {
+                    const data = await response.json();
+                    console.error("Error from server:", data.error);
+                    alert("Error: " + data.error);
+                }
+            } catch (error) {
+                console.error("Request failed:", error);
+                alert("Request failed. Check console for details.");
+            }
+        });
+    </script>
+</body>
+</html>
