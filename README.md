@@ -1,4 +1,4 @@
-# Barcode Detection and Reading from
+# Barcode Detection and Reading from :)
 
 This project implements a FastAPI application that utilizes a a custom YOLO model for image processing and barcode detection. The application is containerized using [Docker](#https://www.docker.com/) and [Docker Compose](#https://www.docker.com/) for easy deployment.
 
